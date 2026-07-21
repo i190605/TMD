@@ -1,121 +1,299 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 
-function App() {
-  const [count, setCount] = useState(0)
+import { ASSIGNEES } from './constants'
+import { OverdueAlert } from './components/dashboard/OverdueAlert'
+import { StatsBar } from './components/dashboard/StatsBar'
+import { TaskDetail } from './components/features/tasks/TaskDetail'
+import { TaskFilters } from './components/features/tasks/TaskFilters'
+import { TaskForm } from './components/features/tasks/TaskForm'
+import { TaskList } from './components/features/tasks/TaskList'
+import { AppLayout } from './components/layout/AppLayout'
+import { ToastProvider, useToast } from './components/ui/Toast'
+import { useTasks } from './hooks/useTasks'
+import type { CreateTaskPayload, Status, Task } from './types/task'
+
+const EMPTY_FORM_VALUES: Partial<CreateTaskPayload> = {}
+
+function taskToFormValues(
+  task: Task,
+): Partial<CreateTaskPayload> {
+  return {
+    title: task.title,
+    description: task.description,
+    priority: task.priority,
+    dueDate: task.dueDate,
+    assignee: task.assignee,
+    customer: task.customer,
+    tags: task.tags,
+  }
+}
+
+function isTypingTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) {
+    return false
+  }
+
+  return (
+    target.tagName === 'INPUT' ||
+    target.tagName === 'TEXTAREA' ||
+    target.tagName === 'SELECT' ||
+    target.isContentEditable
+  )
+}
+
+function TaskDashboard() {
+  const { toast: showToast } = useToast()
+  const {
+    tasks,
+    filteredTasks,
+    loading,
+    error,
+    filters,
+    setFilters,
+    search,
+    setSearch,
+    clearFilters,
+    activeFilterCount,
+    overdueCount,
+    fetchTasks,
+    createTask,
+    updateTask,
+    updateStatus,
+  } = useTasks()
+  const [isCreateFormOpen, setIsCreateFormOpen] = useState(false)
+  const [isEditFormOpen, setIsEditFormOpen] = useState(false)
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null)
+  const [isDetailOpen, setIsDetailOpen] = useState(false)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const searchInputRef = useRef<HTMLInputElement>(null)
+
+  const openCreateForm = useCallback((): void => {
+    setIsCreateFormOpen(true)
+  }, [])
+
+  const closeCreateForm = useCallback((): void => {
+    setIsCreateFormOpen(false)
+  }, [])
+
+  const closeEditForm = useCallback((): void => {
+    setIsEditFormOpen(false)
+  }, [])
+
+  const closeTaskDetail = useCallback((): void => {
+    setIsDetailOpen(false)
+  }, [])
+
+  useEffect(() => {
+    const handleShortcut = (event: KeyboardEvent): void => {
+      if (
+        isTypingTarget(event.target) ||
+        event.ctrlKey ||
+        event.metaKey ||
+        event.altKey ||
+        isCreateFormOpen ||
+        isEditFormOpen ||
+        isDetailOpen
+      ) {
+        return
+      }
+
+      if (event.key.toLowerCase() === 'n') {
+        event.preventDefault()
+        openCreateForm()
+      } else if (event.key === '/') {
+        event.preventDefault()
+        searchInputRef.current?.focus()
+      }
+    }
+
+    document.addEventListener('keydown', handleShortcut)
+
+    return () => {
+      document.removeEventListener('keydown', handleShortcut)
+    }
+  }, [isCreateFormOpen, isDetailOpen, isEditFormOpen, openCreateForm])
+
+  useEffect(() => {
+    if (!selectedTask) {
+      return
+    }
+
+    const currentTask = tasks.find((task) => task.id === selectedTask.id)
+
+    if (currentTask && currentTask !== selectedTask) {
+      setSelectedTask(currentTask)
+    }
+  }, [selectedTask, tasks])
+
+  const editInitialValues = useMemo(
+    () => (selectedTask ? taskToFormValues(selectedTask) : EMPTY_FORM_VALUES),
+    [selectedTask],
+  )
+
+  const handleSelectTask = useCallback((task: Task): void => {
+    setSelectedTask(task)
+    setIsDetailOpen(true)
+  }, [])
+
+  const handleEditTask = useCallback((task: Task): void => {
+    setSelectedTask(task)
+    setIsDetailOpen(false)
+    setIsEditFormOpen(true)
+  }, [])
+
+  const handleStatusChange = useCallback(
+    async (id: string, status: Status): Promise<void> => {
+      try {
+        await updateStatus(id, status)
+        showToast({ message: 'Task status updated', type: 'success' })
+      } catch {
+        showToast({
+          message: 'Failed to update task status. Please try again.',
+          type: 'error',
+        })
+      }
+    },
+    [showToast, updateStatus],
+  )
+
+  const handleCreateTask = async (
+    payload: CreateTaskPayload,
+  ): Promise<void> => {
+    setIsSubmitting(true)
+
+    try {
+      await createTask(payload)
+      closeCreateForm()
+      showToast({ message: 'Task created successfully', type: 'success' })
+    } catch {
+      showToast({
+        message: 'Failed to create task. Please try again.',
+        type: 'error',
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleUpdateTask = async (
+    payload: CreateTaskPayload,
+  ): Promise<void> => {
+    if (!selectedTask) {
+      return
+    }
+
+    setIsSubmitting(true)
+
+    try {
+      await updateTask(selectedTask.id, payload)
+      closeEditForm()
+      showToast({ message: 'Task updated successfully', type: 'success' })
+    } catch {
+      showToast({
+        message: 'Failed to update task. Please try again.',
+        type: 'error',
+      })
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleViewOverdue = (): void => {
+    clearFilters()
+
+    window.requestAnimationFrame(() => {
+      document.getElementById('task-list')?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start',
+      })
+    })
+  }
 
   return (
     <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+      <AppLayout onCreateTask={openCreateForm}>
+        <div className="space-y-5 sm:space-y-6">
+          <header>
+            <p className="text-sm font-semibold text-blue-700">Task Management</p>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
+              Dashboard
+            </h1>
+            <p className="mt-2 text-sm text-slate-600 sm:text-base">
+              Track customer work, priorities, and deadlines in one place.
+            </p>
+          </header>
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+          <OverdueAlert
+            overdueCount={overdueCount}
+            onViewOverdue={handleViewOverdue}
+          />
+          <StatsBar tasks={tasks} />
+          <TaskFilters
+            search={search}
+            onSearchChange={setSearch}
+            filters={filters}
+            onFiltersChange={setFilters}
+            onClearFilters={clearFilters}
+            activeFilterCount={activeFilterCount}
+            assignees={[...ASSIGNEES]}
+            searchInputRef={searchInputRef}
+          />
+          <div className="scroll-mt-6" id="task-list">
+            <TaskList
+              tasks={filteredTasks}
+              loading={loading}
+              error={error}
+              onSelectTask={handleSelectTask}
+              onStatusChange={handleStatusChange}
+              onRetry={() => void fetchTasks()}
+              onCreateTask={openCreateForm}
+              onClearFilters={clearFilters}
+              search={search}
+            />
+          </div>
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      </AppLayout>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
+      <TaskDetail
+        task={selectedTask}
+        isOpen={isDetailOpen}
+        onClose={closeTaskDetail}
+        onEdit={handleEditTask}
+        onStatusChange={handleStatusChange}
+      />
+
+      <TaskForm
+        mode="create"
+        initialValues={EMPTY_FORM_VALUES}
+        isOpen={isCreateFormOpen}
+        onSubmit={handleCreateTask}
+        onCancel={closeCreateForm}
+        isSubmitting={isSubmitting}
+      />
+
+      <TaskForm
+        mode="edit"
+        initialValues={editInitialValues}
+        isOpen={isEditFormOpen}
+        onSubmit={handleUpdateTask}
+        onCancel={closeEditForm}
+        isSubmitting={isSubmitting}
+      />
     </>
+  )
+}
+
+function App() {
+  return (
+    <ToastProvider>
+      <TaskDashboard />
+    </ToastProvider>
   )
 }
 

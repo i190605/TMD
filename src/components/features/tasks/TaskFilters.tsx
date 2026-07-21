@@ -4,6 +4,7 @@ import {
   useRef,
   useState,
   type ChangeEvent,
+  type RefObject,
 } from 'react'
 import { ChevronDown, ListFilter, Search, X } from 'lucide-react'
 
@@ -23,6 +24,7 @@ export interface TaskFiltersProps {
   onClearFilters: () => void
   activeFilterCount: number
   assignees: Assignee[]
+  searchInputRef?: RefObject<HTMLInputElement | null>
 }
 
 interface FilterSelectProps {
@@ -100,9 +102,10 @@ function TaskFiltersComponent({
   onClearFilters,
   activeFilterCount,
   assignees,
+  searchInputRef,
 }: TaskFiltersProps) {
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false)
-  const searchInputRef = useRef<HTMLInputElement>(null)
+  const internalSearchInputRef = useRef<HTMLInputElement>(null)
   const generatedId = useId()
   const mobilePanelId = `${generatedId}-mobile-filters`
   const assigneeOptions = [
@@ -137,7 +140,7 @@ function TaskFiltersComponent({
 
   const clearSearch = (): void => {
     onSearchChange('')
-    searchInputRef.current?.focus()
+    ;(searchInputRef?.current ?? internalSearchInputRef.current)?.focus()
   }
 
   const filterControls = (idPrefix: string) => (
@@ -187,7 +190,13 @@ function TaskFiltersComponent({
             aria-hidden="true"
           />
           <input
-            ref={searchInputRef}
+            ref={(element) => {
+              internalSearchInputRef.current = element
+
+              if (searchInputRef) {
+                searchInputRef.current = element
+              }
+            }}
             className="h-10 w-full rounded-lg border border-slate-300 bg-white py-2 pl-9 pr-10 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 hover:border-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
             id={`${generatedId}-search`}
             type="search"

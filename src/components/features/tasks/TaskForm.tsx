@@ -1,9 +1,4 @@
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import {
   addBusinessDays,
@@ -29,6 +24,7 @@ export type TaskFormMode = 'create' | 'edit'
 export interface TaskFormProps {
   mode: TaskFormMode
   initialValues: Partial<CreateTaskPayload>
+  isOpen: boolean
   onSubmit: (payload: CreateTaskPayload) => Promise<void>
   onCancel: () => void
   isSubmitting: boolean
@@ -122,6 +118,7 @@ function createDefaultValues(
 export function TaskForm({
   mode,
   initialValues,
+  isOpen,
   onSubmit,
   onCancel,
   isSubmitting,
@@ -153,11 +150,19 @@ export function TaskForm({
   const titleRegistration = register('title')
 
   useEffect(() => {
+    if (!isOpen) {
+      return
+    }
+
     reset(defaultValues)
     setShowCancelWarning(false)
-  }, [defaultValues, mode, reset])
+  }, [defaultValues, isOpen, mode, reset])
 
   useEffect(() => {
+    if (!isOpen) {
+      return undefined
+    }
+
     let timeoutId: number | undefined
     const animationFrameId = window.requestAnimationFrame(() => {
       timeoutId = window.setTimeout(() => {
@@ -172,7 +177,7 @@ export function TaskForm({
         window.clearTimeout(timeoutId)
       }
     }
-  }, [mode])
+  }, [isOpen, mode])
 
   useEffect(() => {
     if (!showCancelWarning) {
@@ -188,14 +193,14 @@ export function TaskForm({
     }
   }, [showCancelWarning])
 
-  const requestCancel = (): void => {
+  const requestCancel = useCallback((): void => {
     if (isDirty) {
       setShowCancelWarning(true)
       return
     }
 
     onCancel()
-  }
+  }, [isDirty, onCancel])
 
   const submitForm = async (values: TaskFormValues): Promise<void> => {
     const assignee = ASSIGNEES.find(
@@ -241,7 +246,7 @@ export function TaskForm({
   }
 
   return (
-    <Modal isOpen onClose={requestCancel} title={modalTitle} size="xl">
+    <Modal isOpen={isOpen} onClose={requestCancel} title={modalTitle} size="xl">
       <form
         className="space-y-6"
         onSubmit={handleSubmit(submitForm)}

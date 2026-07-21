@@ -13,6 +13,7 @@ export interface TaskListProps {
   onStatusChange: (taskId: string, status: Status) => void
   onRetry: () => void
   onCreateTask: () => void
+  onClearFilters?: () => void
   search: string
 }
 
@@ -24,6 +25,7 @@ export function TaskList({
   onStatusChange,
   onRetry,
   onCreateTask,
+  onClearFilters,
   search,
 }: TaskListProps) {
   let emptyState: ReactNode = null
@@ -35,7 +37,7 @@ export function TaskList({
       <EmptyState
         type="no-results"
         searchQuery={search.trim()}
-        onAction={onRetry}
+        onAction={onClearFilters ?? onRetry}
         actionLabel="Clear Filters"
       />
     )
