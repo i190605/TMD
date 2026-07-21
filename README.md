@@ -403,7 +403,7 @@ CI should additionally run integration, axe, Playwright, security/dependency, AP
 ### Tools
 
 - **Claude (`claude.ai`)** for architecture planning and component-design exploration.
-- **GitHub Copilot** for local autocomplete and repetitive implementation boilerplate.
+- **Codex** for local autocomplete and repetitive implementation boilerplate.
 
 ### How AI was used
 
