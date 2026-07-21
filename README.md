@@ -69,12 +69,12 @@ The automated suite uses **Vitest**, **React Testing Library**, **user-event**, 
 
 ### Verified Results
 
-The latest local verification on **July 21, 2026** produced:
+The latest local verification on **July 22, 2026** produced:
 
 | Check | Result |
 | --- | --- |
-| Test files | **4 passed / 4 total** |
-| Tests | **48 passed / 48 total** |
+| Test files | **7 passed / 7 total** |
+| Tests | **55 passed / 55 total** |
 | Statements | **100%** |
 | Branches | **100%** |
 | Functions | **100%** |
@@ -90,6 +90,9 @@ Coverage is deliberately enforced at 100% for the four high-risk modules selecte
 | `src/store/taskStore.test.ts` | 8 | Fetch/create flows, immediate optimistic mutation, server reconciliation, canonical rollback after failure, rollback-fetch failure, status updates, and error clearing. |
 | `src/components/ui/Modal.test.tsx` | 11 | Closed/open lifecycle, accessible dialog naming, initial/restored focus, body scroll locking, Escape, backdrop dismissal, forward/reverse focus trapping, and defensive focus fallbacks. |
 | `src/components/features/tasks/TaskForm.test.tsx` | 21 | Pristine and dirty cancellation, Cancel/Escape/close/backdrop paths, Keep Editing/Discard, reopen reset, initial focus, payload construction, defaults, validation, submit failures, and submitting state. |
+| `src/components/features/tasks/TaskTable.test.tsx` | 4 | Roving Up/Down row focus, boundary behavior, Enter activation, Space selection, checkbox selection, and Shift+click range selection. |
+| `src/components/layout/AppLayout.test.tsx` | 2 | Focus-only main/task-list skip links, focusable landmarks, and the accessible keyboard-shortcuts trigger. |
+| `src/components/ui/KeyboardShortcutsModal.test.tsx` | 1 | Complete shortcut reference content, accessible dialog naming, and close behavior. |
 
 ### Techniques Used
 
@@ -272,14 +275,15 @@ Different causes require different recovery actions; a generic blank table would
 
 ### Information Hierarchy
 
-The desktop table orders columns as **Priority → Task → Status → Due Date → Assignee → Actions**:
+The desktop table orders columns as **Select → Priority → Task → Status → Due Date → Assignee → Actions**:
 
-1. Priority is first for rapid risk triage and receives a narrow visual footprint.
-2. Task title and customer occupy the largest column because they answer “what work and for whom?”
-3. Status follows the work identity and is editable inline.
-4. Due date exposes urgency and overdue state.
-5. Assignee clarifies ownership after the work and timing are understood.
-6. The explicit View action sits last, following common table-action conventions.
+1. Selection is first so keyboard and pointer users can build an explicit task set without triggering task detail.
+2. Priority follows for rapid risk triage and receives a narrow visual footprint.
+3. Task title and customer occupy the largest column because they answer “what work and for whom?”
+4. Status follows the work identity and is editable inline.
+5. Due date exposes urgency and overdue state.
+6. Assignee clarifies ownership after the work and timing are understood.
+7. The explicit View action sits last, following common table-action conventions.
 
 The table preserves source order initially and supports stable, non-mutating client-side sorting for Priority, Task, Status, Due Date, and Assignee. For production, priority-descending then due-date-ascending should become the service/query default.
 
@@ -287,9 +291,13 @@ The table preserves source order initially and supports stable, non-mutating cli
 
 - **`N`** opens the New Task form, matching the primary creation action.
 - **`/`** focuses search, following conventions from productivity tools and command-oriented applications.
+- **`Cmd/Ctrl + K`** opens the command palette for task creation, search, task-list navigation, and shortcut help.
 - **`Esc`** closes the active modal, detail panel, mobile navigation, or nested confirmation; confirmations consume Escape before their parent surface closes.
+- **`↑` / `↓`** moves focus between desktop task rows without wrapping past the first or last row.
+- **`Enter`** opens the focused task.
+- **`Space`** toggles selection for the focused row; **`Shift + click`** selects a contiguous desktop-table range.
 
-`N` and `/` are implemented in `App.tsx` with a document keydown listener. They do not fire while an input, textarea, select, or content-editable element is active, when modifier keys are held, or while another dialog is open. Escape handling lives with each modal surface so focus restoration and nested-dialog behavior remain encapsulated. The visible UI remains fully usable without knowing any shortcut; shortcuts are accelerators, not requirements.
+Application-level shortcuts are implemented in `App.tsx`; row navigation and selection stay local to `TaskTable`. `N` and `/` do not fire while an input, textarea, select, or content-editable element is active, when modifier keys are held, or while another dialog is open. Escape handling lives with each modal surface so focus restoration and nested-dialog behavior remain encapsulated. The top-right **Keyboard shortcuts** button exposes the complete reference, and the visible UI remains fully usable without knowing any shortcut; shortcuts are accelerators, not requirements.
 
 ## Performance Considerations
 
@@ -317,8 +325,10 @@ The table preserves source order initially and supports stable, non-mutating cli
 ### Implemented
 
 - **Semantic HTML:** the application uses `table`, `thead`, `th`, `button`, `form`, `fieldset`, `label`, `nav`, `aside`, `header`, `main`, `section`, `article`, `dl`, and `time` where appropriate.
-- **Skip-style navigation link:** the TaskFlow logo and Dashboard navigation link target `#main-content`, allowing keyboard users to move directly to the main landmark. A production polish item is to add a dedicated visually hidden “Skip to main content” link as the first focusable element.
+- **Focus-only skip links:** the first keyboard stops are dedicated **Skip to main content** and **Skip to task list** links targeting programmatically focusable landmarks.
+- **Consistent focus indicators:** interactive elements retain an outline and receive a two-pixel semantic accent ring for `:focus-visible`; focused table rows also receive a visible inset highlight.
 - **Keyboard-accessible interactions:** rows, cards, sort headers, filters, dropdowns, dialogs, navigation, and confirmation actions work without a pointer.
+- **Roving task-row focus and selection:** Up/Down moves between desktop rows, Enter opens, Space toggles the row checkbox, Shift+click selects a range, and the selected count is announced politely.
 - **Focus management and traps:** the shared modal, task detail panel, reopen confirmation, and mobile sidebar constrain Tab navigation, focus the relevant first target, close on Escape, and restore prior focus.
 - **ARIA labels on icon-only buttons:** close, clear-search, menu, dismiss, and similar controls expose meaningful accessible names.
 - **`aria-live="polite"` toast area:** success and informational toasts are announced without interrupting the user; errors use `role="alert"`. Filter result changes are represented by the updated task region and empty-state status; a dedicated live result-count announcement remains a production enhancement.
@@ -334,27 +344,59 @@ The table preserves source order initially and supports stable, non-mutating cli
 - Some mobile touch targets are 40 px; 44 px minimum targets would be safer for motor accessibility.
 - The app does not yet include an automated accessibility test suite with axe-core or Playwright.
 - Filtered-result counts do not currently have a dedicated `aria-live` announcement.
-- The navigation-to-main link is visible branding/navigation rather than a conventional first-focus hidden skip link.
 - Native select behavior and date inputs vary by browser and should receive cross-browser assistive-technology testing.
 
 ## Production Readiness Review
 
-> **If this application were launching to production tomorrow, what concerns would you raise?**
+> **Current assessment:** the frontend demonstration is locally buildable and its highest-risk interaction logic is strongly verified, but it is **not ready for a production launch**. The remaining blockers are primarily backend durability, identity/security, operational resilience, broader browser-level validation, and release automation—not failures in the four targeted test areas.
 
-1. **No real backend:** local in-memory data is not durable, transactional, backed up, or shared between users.
-2. **No authentication or authorization:** there is no identity, tenant boundary, role model, or permission check for reading and mutating customer work.
-3. **Client-side filtering will not scale:** every task is loaded, scanned, sorted, and potentially rendered in the browser.
-4. **No real-time collaboration:** concurrent edits can overwrite each other because there is no version field, websocket synchronization, or conflict-resolution strategy.
-5. **No audit trail:** although deletion is avoided, status and field changes do not record actor, timestamped event history, previous value, or reason.
-6. **Error handling needs resilience:** production requests need bounded retries, exponential backoff, idempotency, timeout/cancellation handling, and possibly circuit-breaker behavior.
-7. **No offline support:** there is no service worker, local mutation queue, synchronization state, or conflict handling for intermittent connectivity.
-8. **Validation is client-side only:** the backend must independently validate payload shape, due-date policy, customer access, status transitions, and field lengths.
-9. **No monitoring or error tracking:** add Sentry or equivalent error reporting, Datadog/OpenTelemetry observability, structured logs, metrics, alerting, and trace correlation.
-10. **Automated coverage is intentionally focused:** the current Vitest suite fully covers filter classification, store rollback, shared modal behavior, and task-form cancellation/submission paths. Broader component integration, automated accessibility checks with axe-core, real-browser Playwright coverage, visual regression, and end-to-end workflows are still needed before reliable deployment.
-11. **No pagination or data retention policy:** API contracts must define cursors, limits, archival behavior, and performance targets.
-12. **No security hardening review:** CSP, dependency scanning, secret handling, rate limits, CSRF strategy, secure headers, and input/output encoding need assessment.
-13. **No release pipeline:** CI should enforce formatting, linting, strict type checks, tests, bundle budgets, preview deployment, and controlled rollback.
-14. **Timezone semantics are underspecified:** date-only deadlines need an organization timezone and clear inclusive/exclusive cutoff rules to avoid cross-region surprises.
+### What Is Verified Today
+
+- **Targeted automated quality gate:** 55 Vitest tests pass across filter classification, optimistic store rollback, shared modal focus/Escape behavior, task-form cancellation/submission behavior, table keyboard navigation/selection, skip links, and the shortcuts reference dialog.
+- **Strict scoped coverage:** the four modules listed in `vite.config.ts` meet enforced 100% statement, branch, function, and line coverage. This provides strong evidence for those paths but does not imply repository-wide behavioral coverage.
+- **Static verification:** Oxlint reports zero warnings/errors, TypeScript project compilation passes, and Vite creates a production bundle successfully.
+- **Failure behavior:** tests cover service rejection, canonical task reload after optimistic failure, rollback-fetch failure, validation errors, submit errors, and defensive focus paths—not only happy paths.
+- **Keyboard and focus behavior:** semantic dialog naming, initial/restored focus, Tab trapping, Escape handling, backdrop dismissal, and dirty-form interception are automated in jsdom.
+
+These checks make the current code suitable for review, continued development, and a controlled demonstration. They are necessary production signals, but they do not validate a real backend, deployed infrastructure, real browsers, assistive technologies, security controls, or production traffic.
+
+### Launch Blockers
+
+| Area | Current risk | Required before production |
+| --- | --- | --- |
+| Data durability | Tasks are stored in local in-memory mock data and reset; writes are neither transactional nor shared between users. | Introduce a durable database and versioned API, backups, migrations, transactional writes, and tested recovery procedures. |
+| Identity and tenant isolation | Every visitor can read and mutate every task; there is no authenticated actor or account boundary. | Add authentication, server-side authorization, tenant scoping, role/permission tests, secure session handling, and least-privilege access. |
+| Server-side validation | Zod currently protects only the browser boundary and can be bypassed. | Validate payloads, status transitions, due-date policy, customer access, and field limits independently on the server. |
+| Concurrency and auditability | Last-write-wins updates can silently overwrite concurrent work, and changes have no actor or history. | Add version/ETag conflict detection, an append-only audit trail, actor/timestamp metadata, and a conflict-resolution UX. |
+| Scale and data contracts | All tasks are fetched, filtered, sorted, and rendered client-side. | Define cursor pagination, server-side filter/sort semantics, limits, indexing, retention/archive policy, and measurable latency targets. |
+| Network resilience | The mock service does not exercise timeouts, cancellation, retries, idempotency, or partial outages. | Add abortable requests, bounded exponential retries where safe, idempotency keys, normalized errors, offline/reconnect behavior, and failure-mode tests. |
+| Security hardening | The project has not had a production threat model or deployment-header review. | Establish CSP and secure headers, CSRF strategy, rate limits, dependency/secret scanning, output-encoding review, and penetration testing. |
+| Observability and operations | There is no production telemetry, alerting, runbook, or service-level objective. | Add structured logs, error tracking, metrics, traces, privacy-safe correlation IDs, dashboards, alerts, SLOs, and incident/runbook ownership. |
+| Timezone policy | Date-only deadlines use the browser timezone, which can disagree across regions. | Define an organization/account timezone, API date semantics, cutoff rules, daylight-saving behavior, and cross-timezone tests. |
+
+### Test and Release Gaps
+
+The current suite intentionally protects four high-value modules. Before launch, quality gates should also include:
+
+1. **Integration coverage:** test `useTasks`, app composition, task detail/reopen flows, table/card status changes, sorting, loading/error/empty states, toasts, and keyboard shortcuts across component boundaries.
+2. **Real-browser end-to-end coverage:** use Playwright for create, edit, search/filter, optimistic success/failure, navigation, responsive layouts, persistence expectations, and critical Chromium/Firefox/WebKit flows.
+3. **Automated accessibility checks:** add axe-core to component/integration tests and Playwright accessibility scans; perform manual NVDA, JAWS, and VoiceOver testing because jsdom cannot validate real assistive-technology behavior.
+4. **Visual and responsive regression:** capture stable desktop/mobile states for long content, validation, errors, loading, empty results, dark mode, and focus-visible treatments.
+5. **API contract and resilience tests:** verify authentication, authorization, schema compatibility, pagination, concurrency conflicts, idempotency, timeout/retry behavior, and rollback against the real service.
+6. **Non-functional validation:** establish bundle and Web Vitals budgets, load-test expected task volumes, exercise degraded networks, and test supported browser/device matrices.
+
+### Minimum Release Gates
+
+A production release should be blocked unless CI, on every pull request, completes the following against a production-like environment:
+
+```bash
+npm ci
+npm run lint
+npm run test:coverage
+npm run build
+```
+
+CI should additionally run integration, axe, Playwright, security/dependency, API-contract, migration, and performance checks; publish immutable artifacts and coverage/test reports; deploy to an isolated preview environment; require review and branch protection; and support health-checked rollout plus a documented rollback. The existing local 100% scoped coverage gate should remain in place while broader suites are added rather than being treated as a substitute for them.
 
 ## AI Usage
 

@@ -14,6 +14,8 @@ import { TaskFilters } from './components/features/tasks/TaskFilters'
 import { TaskForm } from './components/features/tasks/TaskForm'
 import { TaskList } from './components/features/tasks/TaskList'
 import { AppLayout } from './components/layout/AppLayout'
+import { CommandPalette } from './components/ui/CommandPalette'
+import { KeyboardShortcutsModal } from './components/ui/KeyboardShortcutsModal'
 import { ToastProvider, useToast } from './components/ui/Toast'
 import { useTasks } from './hooks/useTasks'
 import type { CreateTaskPayload, Status, Task } from './types/task'
@@ -71,6 +73,8 @@ function TaskDashboard() {
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isShortcutsOpen, setIsShortcutsOpen] = useState(false)
+  const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
 
   const openCreateForm = useCallback((): void => {
@@ -89,8 +93,34 @@ function TaskDashboard() {
     setIsDetailOpen(false)
   }, [])
 
+  const focusSearch = useCallback((): void => {
+    window.requestAnimationFrame(() => searchInputRef.current?.focus())
+  }, [])
+
+  const focusTaskList = useCallback((): void => {
+    window.requestAnimationFrame(() => {
+      const taskList = document.getElementById('task-list')
+      const firstRow = taskList?.querySelector<HTMLElement>('[data-task-row]')
+      ;(firstRow ?? taskList)?.focus()
+    })
+  }, [])
+
   useEffect(() => {
     const handleShortcut = (event: KeyboardEvent): void => {
+      if (
+        event.key.toLowerCase() === 'k' &&
+        (event.ctrlKey || event.metaKey) &&
+        !event.altKey &&
+        !isCreateFormOpen &&
+        !isEditFormOpen &&
+        !isDetailOpen &&
+        !isShortcutsOpen
+      ) {
+        event.preventDefault()
+        setIsCommandPaletteOpen(true)
+        return
+      }
+
       if (
         isTypingTarget(event.target) ||
         event.ctrlKey ||
@@ -98,7 +128,9 @@ function TaskDashboard() {
         event.altKey ||
         isCreateFormOpen ||
         isEditFormOpen ||
-        isDetailOpen
+        isDetailOpen ||
+        isShortcutsOpen ||
+        isCommandPaletteOpen
       ) {
         return
       }
@@ -108,7 +140,7 @@ function TaskDashboard() {
         openCreateForm()
       } else if (event.key === '/') {
         event.preventDefault()
-        searchInputRef.current?.focus()
+        focusSearch()
       }
     }
 
@@ -117,7 +149,7 @@ function TaskDashboard() {
     return () => {
       document.removeEventListener('keydown', handleShortcut)
     }
-  }, [isCreateFormOpen, isDetailOpen, isEditFormOpen, openCreateForm])
+  }, [focusSearch, isCommandPaletteOpen, isCreateFormOpen, isDetailOpen, isEditFormOpen, isShortcutsOpen, openCreateForm])
 
   useEffect(() => {
     if (!selectedTask) {
@@ -217,7 +249,10 @@ function TaskDashboard() {
 
   return (
     <>
-      <AppLayout onCreateTask={openCreateForm}>
+      <AppLayout
+        onCreateTask={openCreateForm}
+        onOpenShortcuts={() => setIsShortcutsOpen(true)}
+      >
         <div className="space-y-5 sm:space-y-6">
           <header>
             <p className="text-sm font-semibold text-blue-700">Task Management</p>
@@ -244,7 +279,7 @@ function TaskDashboard() {
             assignees={[...ASSIGNEES]}
             searchInputRef={searchInputRef}
           />
-          <div className="scroll-mt-6" id="task-list">
+          <div className="scroll-mt-6" id="task-list" tabIndex={-1}>
             <TaskList
               tasks={filteredTasks}
               loading={loading}
@@ -259,6 +294,20 @@ function TaskDashboard() {
           </div>
         </div>
       </AppLayout>
+
+      <KeyboardShortcutsModal
+        isOpen={isShortcutsOpen}
+        onClose={() => setIsShortcutsOpen(false)}
+      />
+
+      <CommandPalette
+        isOpen={isCommandPaletteOpen}
+        onClose={() => setIsCommandPaletteOpen(false)}
+        onNewTask={openCreateForm}
+        onSearch={focusSearch}
+        onTaskList={focusTaskList}
+        onShortcuts={() => setIsShortcutsOpen(true)}
+      />
 
       <TaskDetail
         task={selectedTask}
