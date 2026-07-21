@@ -303,7 +303,7 @@ The table preserves source order initially and supports stable, non-mutating cli
 ### Tools
 
 - **Claude (`claude.ai`)** for architecture planning and component-design exploration.
-- **GitHub Copilot** for local autocomplete and repetitive implementation boilerplate.
+- **Codex** for local autocomplete and repetitive implementation boilerplate.
 
 ### How AI was used
 
