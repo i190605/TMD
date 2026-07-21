@@ -31,6 +31,15 @@ npm run build
 # Run Oxlint
 npm run lint
 
+# Run the test suite once
+npm test
+
+# Run tests in watch mode during development
+npm run test:watch
+
+# Run tests with enforced coverage thresholds
+npm run test:coverage
+
 # Preview the production build locally
 npm run preview
 ```
@@ -53,6 +62,55 @@ No environment variables are required. The dashboard uses local mock data from `
 - **Zod** — defines a single runtime validation schema with typed output and user-facing validation messages.
 - **date-fns** — handles readable due dates, business-day defaults, date comparison, and overdue-day calculations with small composable functions.
 - **Lucide React** — supplies a coherent, lightweight icon set whose SVGs compose naturally with React and Tailwind.
+
+## Testing
+
+The automated suite uses **Vitest**, **React Testing Library**, **user-event**, **jest-dom**, and **jsdom**. Istanbul produces terminal, JSON-summary, and HTML coverage reports. The HTML report is generated at `coverage/index.html` and is intentionally ignored by Git.
+
+### Verified Results
+
+The latest local verification on **July 21, 2026** produced:
+
+| Check | Result |
+| --- | --- |
+| Test files | **4 passed / 4 total** |
+| Tests | **48 passed / 48 total** |
+| Statements | **100%** |
+| Branches | **100%** |
+| Functions | **100%** |
+| Lines | **100%** |
+| Oxlint | **0 warnings, 0 errors** |
+| TypeScript + production build | **Passed** |
+
+Coverage is deliberately enforced at 100% for the four high-risk modules selected in `vite.config.ts`; it is **not** a claim that every source file in the application is instrumented:
+
+| Test suite | Tests | Main behavior covered |
+| --- | ---: | --- |
+| `src/hooks/useTaskFilters.test.ts` | 8 | Default filter classification, 300 ms debouncing, normalized title/customer search, individual filter dimensions, AND combinations, active-filter counting, clearing, and source-data changes. |
+| `src/store/taskStore.test.ts` | 8 | Fetch/create flows, immediate optimistic mutation, server reconciliation, canonical rollback after failure, rollback-fetch failure, status updates, and error clearing. |
+| `src/components/ui/Modal.test.tsx` | 11 | Closed/open lifecycle, accessible dialog naming, initial/restored focus, body scroll locking, Escape, backdrop dismissal, forward/reverse focus trapping, and defensive focus fallbacks. |
+| `src/components/features/tasks/TaskForm.test.tsx` | 21 | Pristine and dirty cancellation, Cancel/Escape/close/backdrop paths, Keep Editing/Discard, reopen reset, initial focus, payload construction, defaults, validation, submit failures, and submitting state. |
+
+### Techniques Used
+
+- **Behavior-first DOM assertions:** tests query controls by semantic role and accessible name and assert what a user can observe instead of component internals or snapshots.
+- **Realistic interaction simulation:** `user-event` covers typing and clicking; `fireEvent` is reserved for lower-level form, keyboard, and backdrop events where exact event control matters.
+- **Deterministic asynchronous testing:** fake timers drive the 300 ms debounce, deferred promises expose optimistic state before settlement, and `waitFor`/`findBy*` synchronize React effects and asynchronous feedback.
+- **Service-boundary isolation:** `vi.spyOn` controls `taskService` success and failure responses without bypassing Zustand actions, so tests exercise the real optimistic-update and rollback workflow.
+- **Canonical rollback verification:** failure tests assert both the temporary optimistic state and the subsequent `getAll()` reload, including preservation of the original mutation rejection when rollback loading also fails.
+- **Accessibility-focused modal testing:** focus entry, Tab/Shift+Tab wrapping, Escape prevention, backdrop semantics, focus restoration, `aria-modal`, dialog naming, and scroll-lock cleanup are verified directly.
+- **Dirty-form path coverage:** every dismissal path is routed through the same unsaved-changes guard and tested for both pristine and dirty form states.
+- **Reusable typed fixtures:** `src/test/factories.ts` supplies task builders and controllable deferred promises; `src/test/setup.ts` installs jest-dom matchers, cleanup, and browser API shims.
+- **Strict coverage gate:** Istanbul thresholds fail `npm run test:coverage` unless the selected modules remain at 100% statements, branches, functions, and lines.
+
+Run the same verification locally with:
+
+```bash
+npm test
+npm run test:coverage
+npm run lint
+npm run build
+```
 
 ## Assumptions
 
@@ -292,7 +350,7 @@ The table preserves source order initially and supports stable, non-mutating cli
 7. **No offline support:** there is no service worker, local mutation queue, synchronization state, or conflict handling for intermittent connectivity.
 8. **Validation is client-side only:** the backend must independently validate payload shape, due-date policy, customer access, status transitions, and field lengths.
 9. **No monitoring or error tracking:** add Sentry or equivalent error reporting, Datadog/OpenTelemetry observability, structured logs, metrics, alerting, and trace correlation.
-10. **No automated tests:** unit, component, accessibility, integration, and end-to-end coverage are needed before reliable deployment.
+10. **Automated coverage is intentionally focused:** the current Vitest suite fully covers filter classification, store rollback, shared modal behavior, and task-form cancellation/submission paths. Broader component integration, automated accessibility checks with axe-core, real-browser Playwright coverage, visual regression, and end-to-end workflows are still needed before reliable deployment.
 11. **No pagination or data retention policy:** API contracts must define cursors, limits, archival behavior, and performance targets.
 12. **No security hardening review:** CSP, dependency scanning, secret handling, rate limits, CSRF strategy, secure headers, and input/output encoding need assessment.
 13. **No release pipeline:** CI should enforce formatting, linting, strict type checks, tests, bundle budgets, preview deployment, and controlled rollback.
