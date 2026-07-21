@@ -71,10 +71,10 @@ function FilterSelect({
       </label>
       <select
         className={cn(
-          'h-10 w-full appearance-none rounded-lg border bg-white py-2 pl-3 pr-9 text-sm font-medium text-slate-700 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20',
+          'h-10 w-full appearance-none rounded-lg border bg-white py-2 pl-3 pr-9 text-sm font-medium text-slate-700 shadow-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:bg-slate-900 dark:text-slate-200',
           isActive
-            ? 'border-blue-400 bg-blue-50 text-blue-800'
-            : 'border-slate-300 hover:border-slate-400',
+            ? 'border-blue-400 bg-blue-50 text-blue-800 dark:border-blue-600 dark:bg-blue-950/60 dark:text-blue-200'
+            : 'border-slate-300 hover:border-slate-400 dark:border-slate-700 dark:hover:border-slate-600',
         )}
         id={id}
         value={value}
@@ -87,7 +87,7 @@ function FilterSelect({
         ))}
       </select>
       <ChevronDown
-        className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-slate-500"
+        className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-slate-500 dark:text-slate-400"
         aria-hidden="true"
       />
     </div>
@@ -177,7 +177,7 @@ function TaskFiltersComponent({
 
   return (
     <section
-      className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:p-4"
+      className="rounded-xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900 sm:p-4"
       aria-label="Search and filter tasks"
     >
       <div className="flex flex-wrap items-center gap-2.5">
@@ -186,7 +186,7 @@ function TaskFiltersComponent({
             Search tasks or customers
           </label>
           <Search
-            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400"
+            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400 dark:text-slate-500"
             aria-hidden="true"
           />
           <input
@@ -197,7 +197,7 @@ function TaskFiltersComponent({
                 searchInputRef.current = element
               }
             }}
-            className="h-10 w-full rounded-lg border border-slate-300 bg-white py-2 pl-9 pr-10 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 hover:border-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20"
+            className="h-10 w-full rounded-lg border border-slate-300 bg-white py-2 pl-9 pr-10 text-sm text-slate-900 shadow-sm outline-none transition placeholder:text-slate-400 hover:border-slate-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 dark:hover:border-slate-600"
             id={`${generatedId}-search`}
             type="search"
             value={search}
@@ -207,7 +207,7 @@ function TaskFiltersComponent({
           {search ? (
             <button
               type="button"
-              className="absolute right-2 top-1/2 inline-flex size-7 -translate-y-1/2 items-center justify-center rounded-md text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              className="absolute right-2 top-1/2 inline-flex size-7 -translate-y-1/2 items-center justify-center rounded-md text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:text-slate-500 dark:hover:bg-slate-800 dark:hover:text-slate-200"
               onClick={clearSearch}
               aria-label="Clear search"
             >
@@ -225,8 +225,8 @@ function TaskFiltersComponent({
           className={cn(
             'inline-flex h-10 items-center gap-2 rounded-lg border px-3 text-sm font-medium shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 lg:hidden',
             activeFilterCount > 0
-              ? 'border-blue-400 bg-blue-50 text-blue-800'
-              : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50',
+              ? 'border-blue-400 bg-blue-50 text-blue-800 dark:border-blue-600 dark:bg-blue-950/60 dark:text-blue-200'
+              : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800',
           )}
           onClick={() => setIsMobileFiltersOpen((isOpen) => !isOpen)}
           aria-controls={mobilePanelId}
@@ -244,7 +244,7 @@ function TaskFiltersComponent({
         {activeFilterCount > 0 ? (
           <button
             type="button"
-            className="h-10 rounded-lg px-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 hover:text-blue-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            className="h-10 rounded-lg px-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-50 hover:text-blue-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:text-blue-400 dark:hover:bg-blue-950/50 dark:hover:text-blue-200"
             onClick={onClearFilters}
           >
             Clear ({activeFilterCount})
@@ -264,7 +264,7 @@ function TaskFiltersComponent({
         inert={!isMobileFiltersOpen}
       >
         <div className="overflow-hidden">
-          <div className="grid gap-3 border-t border-slate-200 pt-3 mt-3 sm:grid-cols-3">
+          <div className="mt-3 grid gap-3 border-t border-slate-200 pt-3 dark:border-slate-800 sm:grid-cols-3">
             {filterControls('mobile')}
           </div>
         </div>

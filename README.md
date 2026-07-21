@@ -2,7 +2,9 @@
 
 A responsive task-management dashboard for Customer Success teams. TaskFlow gives new and experienced CSMs a shared workspace for triaging customer work, finding overdue commitments, updating status inline, and creating or editing tasks through accessible forms.
 
-The application is a frontend demonstration backed by realistic local data. It includes responsive table/card views, debounced search, composable filters, optimistic updates, task detail and form dialogs, loading/error/empty states, keyboard shortcuts, and accessible interaction patterns.
+The application is a frontend demonstration backed by realistic local data. It includes responsive table/card views, debounced search, composable filters, optimistic updates, task detail and form dialogs, loading/error/empty states, keyboard shortcuts, accessible interaction patterns, and a persistent light/dark theme.
+
+Theme selection initially follows the operating-system preference. Use the sun/moon control in the navigation to switch modes; the explicit choice is saved in `localStorage` for future visits.
 
 ## Setup Instructions
 

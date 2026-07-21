@@ -8,12 +8,16 @@ import {
 import { CheckSquare2, LayoutDashboard, Plus, X } from 'lucide-react'
 
 import { cn } from '../../utils/cn'
+import type { Theme } from '../../hooks/useTheme'
 import { Button } from '../ui/Button'
+import { ThemeToggle } from '../ui/ThemeToggle'
 
 export interface SidebarProps {
   isOpen: boolean
   onClose: () => void
   onCreateTask: () => void
+  theme: Theme
+  onToggleTheme: () => void
 }
 
 interface SidebarContentProps {
@@ -21,6 +25,8 @@ interface SidebarContentProps {
   closeButtonRef?: RefObject<HTMLButtonElement | null>
   onClose: () => void
   onCreateTask: () => void
+  theme: Theme
+  onToggleTheme: () => void
 }
 
 const focusableSelector = [
@@ -34,6 +40,8 @@ function SidebarContent({
   closeButtonRef,
   onClose,
   onCreateTask,
+  theme,
+  onToggleTheme,
 }: SidebarContentProps) {
   const handleCreateTask = (): void => {
     onCreateTask()
@@ -90,6 +98,12 @@ function SidebarContent({
         >
           New Task
         </Button>
+        <ThemeToggle
+          className="mt-3 w-full"
+          theme={theme}
+          onToggle={onToggleTheme}
+          variant="sidebar"
+        />
       </div>
     </>
   )
@@ -99,6 +113,8 @@ function SidebarComponent({
   isOpen,
   onClose,
   onCreateTask,
+  theme,
+  onToggleTheme,
 }: SidebarProps) {
   const mobileSidebarRef = useRef<HTMLElement>(null)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
@@ -182,6 +198,8 @@ function SidebarComponent({
         <SidebarContent
           onClose={onClose}
           onCreateTask={onCreateTask}
+          theme={theme}
+          onToggleTheme={onToggleTheme}
         />
       </aside>
 
@@ -203,6 +221,8 @@ function SidebarComponent({
           closeButtonRef={closeButtonRef}
           onClose={onClose}
           onCreateTask={onCreateTask}
+          theme={theme}
+          onToggleTheme={onToggleTheme}
         />
       </aside>
     </>
